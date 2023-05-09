@@ -1,0 +1,22 @@
+{
+  "files.associations": {
+    "tss.h": "c",
+    "syscall.h": "c",
+    "cstdlib": "c",
+    "*.inc": "c",
+    "vm.h": "c",
+    "stdio.h": "c",
+    "thread.h": "c",
+    "vaddr.h": "c",
+    "init.h": "c",
+    "directory.h": "c",
+    "synch.h": "c",
+    "stdbool.h": "c",
+    "list.h": "c",
+    "filesys.h": "c",
+    "off_t.h": "c",
+    "file.h": "c",
+    "*.tcc": "c",
+    "fstream": "c"
+  }
+}
