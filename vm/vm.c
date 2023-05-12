@@ -1,8 +1,12 @@
 /* vm.c: Generic interface for virtual memory objects. */
 
 #include "threads/malloc.h"
+#include "threads/init.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
+#include "pte.h"
+
+struct list frame_table;
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -62,21 +66,31 @@ err:
 
 /* Find VA from spt and return page. On error, return NULL. */
 struct page *
-spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
+spt_find_page (struct supplemental_page_table *spt, void *va) {
 	struct page *page = NULL;
 	/* TODO: Fill this function. */
-
-	return page;
+	struct page tmp;
+	tmp.va = va;
+	struct hash_elem *e = hash_find(&spt->pages, &tmp.hash_elem);
+	if (e != NULL){
+		return hash_entry(e, struct page, hash_elem);
+	}
+	else
+		return page;
 }
 
 /* Insert PAGE into spt with validation. */
 bool
-spt_insert_page (struct supplemental_page_table *spt UNUSED,
-		struct page *page UNUSED) {
+spt_insert_page (struct supplemental_page_table *spt,
+		struct page *page) {
 	int succ = false;
 	/* TODO: Fill this function. */
-
-	return succ;
+	if (hash_insert(spt, &page->hash_elem) == NULL){
+		succ = true;
+		return succ;
+	}
+	else
+		return succ;
 }
 
 void
@@ -89,7 +103,13 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 static struct frame *
 vm_get_victim (void) {
 	struct frame *victim = NULL;
-	 /* TODO: The policy for eviction is up to you. */
+	/* TODO: The policy for eviction is up to you. */
+
+	if (!list_empty(&frame_table)) {
+		/* 프레임 테이블에서 FIFO 방식으로 첫 번째 프레임을 가져옴. 
+		   (일단 이렇게 구현하고 나중에 Clock 알고리즘 등 사용해서 바꾸면 될듯) */
+		victim = list_entry(list_pop_front(&frame_table), struct frame, frame_elem);
+	}
 
 	return victim;
 }
@@ -98,10 +118,13 @@ vm_get_victim (void) {
  * Return NULL on error.*/
 static struct frame *
 vm_evict_frame (void) {
-	struct frame *victim UNUSED = vm_get_victim ();
+	struct frame *victim = vm_get_victim ();
 	/* TODO: swap out the victim and return the evicted frame. */
-
-	return NULL;
+	if (swap_out(victim->page)){
+		return victim;
+	} else {
+		return NULL;
+	}
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
@@ -112,6 +135,11 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
+	frame = palloc_get_page(PAL_USER);
+	frame->kva = NULL;
+	frame->page = NULL;
+	frame->frame_elem.next = NULL;
+	frame->frame_elem.prev = NULL;
 
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
@@ -153,8 +181,13 @@ bool
 vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
 	/* TODO: Fill this function */
+	struct thread *cur = thread_current(); // 현재 스레드 포인터 가져오기
+    if (cur == NULL) return false; // 스레드가 없으면 실패
 
-	return vm_do_claim_page (page);
+    page = spt_find_page(&cur->spt, va); // spt에서 해당 주소에 해당하는 page를 찾아 page 포인터 설정
+    if (page == NULL) return false; // page가 없으면 실패
+
+	return vm_do_claim_page (page); // vm_do_claim_page 호출하여 페이지를 클레임
 }
 
 /* Claim the PAGE and set up the mmu. */
@@ -162,18 +195,27 @@ static bool
 vm_do_claim_page (struct page *page) {
 	struct frame *frame = vm_get_frame ();
 
+	/* 페이지가 이미 물리주소에 매핑 돼있는지 확인 */
+    if (page->frame != NULL) {
+        return false;
+    }
+
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	pml4_set_page (base_pml4, page->va, frame->kva, PTE_P | PTE_W);
 
 	return swap_in (page, frame->kva);
 }
 
 /* Initialize new supplemental page table */
 void
-supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+supplemental_page_table_init (struct supplemental_page_table *spt) {
+	/* page_hash: 페이지의 가상 주소를 해시 값으로 변환하는 함수 */
+	/* page_less: 페이지의 가상 주소를 비교하는 함수 */
+	hash_init(&spt->pages, page_hash, page_less, NULL);
 }
 
 /* Copy supplemental page table from src to dst */

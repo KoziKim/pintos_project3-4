@@ -7,6 +7,9 @@ static bool file_backed_swap_out (struct page *page);
 static void file_backed_destroy (struct page *page);
 
 /* DO NOT MODIFY this struct */
+/* file-backed pages를 위한 함수 포인터의 테이블 */
+/* .destroy 필드가 file_backed_destroy 값을 가지고 있는 것을 알 수 있는데, 
+	file_backed_destroy는 page를 destroy하고 같은 파일에 정의된 함수다. */
 static const struct page_operations file_ops = {
 	.swap_in = file_backed_swap_in,
 	.swap_out = file_backed_swap_out,
@@ -37,7 +40,7 @@ file_backed_swap_in (struct page *page, void *kva) {
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
