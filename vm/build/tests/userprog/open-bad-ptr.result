@@ -1,0 +1,20 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (open-bad-ptr) begin
+  (open-bad-ptr) end
+  open-bad-ptr: exit(0)
+Differences in `diff -u' format:
+  (open-bad-ptr) begin
+- (open-bad-ptr) end
+- open-bad-ptr: exit(0)
++ Page fault at 0x20101234: not present error reading page in kernel context.
++ open-bad-ptr: exit(-1)
+Acceptable output:
+  (open-bad-ptr) begin
+  open-bad-ptr: exit(-1)
+Differences in `diff -u' format:
+  (open-bad-ptr) begin
++ Page fault at 0x20101234: not present error reading page in kernel context.
+  open-bad-ptr: exit(-1)

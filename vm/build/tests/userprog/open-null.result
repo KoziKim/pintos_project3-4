@@ -1,0 +1,20 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (open-null) begin
+  open-null: exit(-1)
+Differences in `diff -u' format:
+  (open-null) begin
++ Page fault at 0: not present error reading page in kernel context.
+  open-null: exit(-1)
+Acceptable output:
+  (open-null) begin
+  (open-null) end
+  open-null: exit(0)
+Differences in `diff -u' format:
+  (open-null) begin
+- (open-null) end
+- open-null: exit(0)
++ Page fault at 0: not present error reading page in kernel context.
++ open-null: exit(-1)

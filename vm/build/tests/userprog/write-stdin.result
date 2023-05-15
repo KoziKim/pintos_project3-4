@@ -1,0 +1,20 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (write-stdin) begin
+  write-stdin: exit(-1)
+Differences in `diff -u' format:
+  (write-stdin) begin
++ Page fault at 0x8: not present error reading page in kernel context.
+  write-stdin: exit(-1)
+Acceptable output:
+  (write-stdin) begin
+  (write-stdin) end
+  write-stdin: exit(0)
+Differences in `diff -u' format:
+  (write-stdin) begin
+- (write-stdin) end
+- write-stdin: exit(0)
++ Page fault at 0x8: not present error reading page in kernel context.
++ write-stdin: exit(-1)

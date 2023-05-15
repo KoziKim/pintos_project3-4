@@ -308,42 +308,42 @@ bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
 
-// 	/* 1. Copy parent page information */
-// 	struct hash_iterator i;
-// 	hash_first (&i, &src->pages);
+	/* 1. Copy parent page information */
+	struct hash_iterator i;
+	hash_first (&i, &src->pages);
 
-// 	while (hash_next (&i)) {
-// 		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
-// 		enum vm_type type = page_get_type(src_page);		// 부모 페이지의 type
-//         void *upage = src_page->va;						// 부모 페이지의 가상 주소
-//         bool writable = src_page->writable;				// 부모 페이지의 쓰기 가능 여부
-//         vm_initializer *init = src_page->uninit.init;	// 부모의 초기화되지 않은 페이지들 할당 위해 
-//         void *aux = src_page->uninit.aux;
+	while (hash_next (&i)) {
+		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
+		enum vm_type type = page_get_type(src_page);		// 부모 페이지의 type
+        void *upage = src_page->va;						// 부모 페이지의 가상 주소
+        bool writable = src_page->writable;				// 부모 페이지의 쓰기 가능 여부
+        vm_initializer *init = src_page->uninit.init;	// 부모의 초기화되지 않은 페이지들 할당 위해 
+        void *aux = src_page->uninit.aux;
 
-//         // 페이지 타입 검사
-//         if (type == VM_UNINIT) {
-//             if(!vm_alloc_page_with_initializer(type, upage, writable, init, aux))
-//                 return false;
-//         }
-// 		else {
-// 			if(!vm_alloc_page(type, upage, writable))
-//                 return false;
-//             if(!vm_claim_page(upage))
-//                 return false;
-// 			struct page *dst_page = spt_find_page(dst, upage);
-//             memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
-// 		}
-// 	}
-// 	return true;
-// }
+        // 페이지 타입 검사
+        if (type == VM_UNINIT) {
+            if(!vm_alloc_page_with_initializer(type, upage, writable, init, aux))
+                return false;
+        }
+		else {
+			if(!vm_alloc_page(type, upage, writable))
+                return false;
+            if(!vm_claim_page(upage))
+                return false;
+			struct page *dst_page = spt_find_page(dst, upage);
+            memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+		}
+	}
+	return true;
+}
 
-// /* Callback function for hash_destroy() to free all pages in the supplemental page table */
-// void page_destroy_func(struct hash_elem *e, void *aux UNUSED) {
-//     struct page *page = hash_entry (e, struct page, hash_elem);
+/* Callback function for hash_destroy() to free all pages in the supplemental page table */
+void page_destroy_func(struct hash_elem *e, void *aux UNUSED) {
+    struct page *page = hash_entry (e, struct page, hash_elem);
 
-// 	ASSERT(is_user_vaddr(page->va));
-// 	ASSERT(is_kernel_vaddr(page));
-// 	free(page);
+	ASSERT(is_user_vaddr(page->va));
+	ASSERT(is_kernel_vaddr(page));
+	free(page);
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -351,19 +351,19 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	// struct hash_iterator i;
-	// struct frame* frame;
-    // hash_first (&i, &spt->pages);
-	// while (hash_next(&i)){
-	// 	struct page *target = hash_entry (hash_cur (&i), struct page, hash_elem);
-	// 	frame = target->frame;
-	// 	// file-backed file인 경우
-	// 	// if(page_get_type(target) == VM_FILE){
-	// 	if(target->operations->type == VM_FILE){
-	// 		do_munmap(target->va);
-	// 	}
-	// }
+	struct hash_iterator i;
+	struct frame* frame;
+    hash_first (&i, &spt->pages);
+	while (hash_next(&i)){
+		struct page *target = hash_entry (hash_cur (&i), struct page, hash_elem);
+		frame = target->frame;
+		// file-backed file인 경우
+		// if(page_get_type(target) == VM_FILE){
+		// if(target->operations->type == VM_FILE){
+		// 	do_munmap(target->va);
+		// }
+	}
 	
-	// hash_destroy(&spt->pages, page_destroy_func);
-	// free(frame);
+	hash_destroy(&spt->pages, page_destroy_func);
+	free(frame);
 }

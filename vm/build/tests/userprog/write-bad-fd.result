@@ -1,0 +1,20 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (write-bad-fd) begin
+  write-bad-fd: exit(-1)
+Differences in `diff -u' format:
+  (write-bad-fd) begin
++ Page fault at 0x8: not present error reading page in kernel context.
+  write-bad-fd: exit(-1)
+Acceptable output:
+  (write-bad-fd) begin
+  (write-bad-fd) end
+  write-bad-fd: exit(0)
+Differences in `diff -u' format:
+  (write-bad-fd) begin
+- (write-bad-fd) end
+- write-bad-fd: exit(0)
++ Page fault at 0x8: not present error reading page in kernel context.
++ write-bad-fd: exit(-1)

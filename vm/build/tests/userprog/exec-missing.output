@@ -1,0 +1,43 @@
+Kernel command line: -q -f put exec-missing run exec-missing
+0 ~ 9fc00 1
+100000 ~ 13e0000 1
+Pintos booting with: 
+	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
+	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
+Calibrating timer...  117,760,000 loops/s.
+hd0:0: detected 329 sector (164 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
+hd1:0: detected 102 sector (51 kB) disk, model "QEMU HARDDISK", serial "QM00003"
+hd1:1: detected 8,064 sector (3 MB) disk, model "QEMU HARDDISK", serial "QM00004"
+Formatting file system...done.
+Boot complete.
+Putting 'exec-missing' into the file system...
+Executing 'exec-missing':
+(exec-missing) begin
+load: no-such-file: open failed
+Interrupt 0x0d (#GP General Protection Exception) at rip=8004221368
+ cr2=00000000004033b6 error=               0
+rax ccccccccccccccb4 rbx 000080042a607800 rcx cccccccccccccccc rdx 0000000000000000
+rsp 0000008004273d88 rbp 0000008004273db0 rsi 00000080042a6030 rdi cccccccccccccccc
+rip 0000008004221368 r8 0000000000000001  r9 0000000000000000 r10 0000000000000000
+r11 0000000000000212 r12 000080042a6f1800 r13 0000800420a6f500 r14 00008004273f1000
+r15 0000010427300000 rflags 00000216
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Kernel PANIC at ../../userprog/exception.c:97 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0x8004217ed7 0x800421cc75 0x8004208d9b 0x80042091b9 0x800421acd5 0x800421a6bf 0x8004220da9 0x80042211fe 0x800422110e 0x800421cd6c 0x8004208d9b 0x80042091b9Interrupt 0x0d (#GP General Protection Exception) at rip=8004221368
+ cr2=000000004747ff80 error=               0
+rax ccccccccccccccb4 rbx 000080042a607800 rcx cccccccccccccccc rdx 0000000000000000
+rsp 0000008004273948 rbp 0000008004273970 rsi 00000080042a60b0 rdi cccccccccccccccc
+rip 0000008004221368 r8 0000000000000001  r9 000000800421b350 r10 0000000000000000
+r11 0000000000000212 r12 000080042a6f1800 r13 0000800420a6f500 r14 00008004273f1000
+r15 0000010427300000 rflags 00000212
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Kernel PANIC recursion at ../../userprog/exception.c:97 in kill().
+Timer: 81 ticks
+Thread: 30 idle ticks, 37 kernel ticks, 14 user ticks
+hd0:0: 0 reads, 0 writes
+hd0:1: 96 reads, 232 writes
+hd1:0: 102 reads, 0 writes
+hd1:1: 0 reads, 0 writes
+Console: 2302 characters output
+Key

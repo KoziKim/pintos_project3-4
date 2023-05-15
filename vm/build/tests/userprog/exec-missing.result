@@ -1,0 +1,16 @@
+FAIL
+Kernel panic in run: PANIC at ../../userprog/exception.c:97 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0x8004217ed7 0x800421cc75 0x8004208d9b 0x80042091b9 0x800421acd5 0x800421a6bf 0x8004220da9 0x80042211fe 0x800422110e 0x800421cd6c 0x8004208d9b 0x80042091b9
+Translation of call stack:
+0x0000008004217ed7: debug_panic (lib/kernel/debug.c:32)
+0x000000800421cc75: kill (userprog/exception.c:103)
+0x0000008004208d9b: intr_handler (threads/interrupt.c:352)
+0x00000080042091b9: intr_entry (threads/intr-stubs.o:?)
+0x000000800421acd5: find_elem (lib/kernel/hash.c:302)
+0x000000800421a6bf: hash_find (lib/kernel/hash.c:126)
+0x0000008004220da9: spt_find_page (vm/vm.c:109)
+0x00000080042211fe: vm_claim_page (vm/vm.c:249)
+0x000000800422110e: vm_try_handle_fault (vm/vm.c:219 (discriminator 4))
+0x000000800421cd6c: page_fault (userprog/exception.c:145)
+0x0000008004208d9b: intr_handler (threads/interrupt.c:352)
+0x00000080042091b9: intr_entry (threads/intr-stubs.o:?)
