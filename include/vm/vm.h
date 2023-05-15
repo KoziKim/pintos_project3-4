@@ -2,6 +2,7 @@
 #define VM_VM_H
 #include <stdbool.h>
 #include "threads/palloc.h"
+#include "lib/kernel/list.h"
 #include "hash.h"
 
 enum vm_type {
@@ -49,6 +50,7 @@ struct page {
 	/* Your implementation */
 	/* struct page를 hash table에 넣고 싶다면 struct hash_elem 멤버를 구조체에 포함시켜야 함. */
 	struct hash_elem hash_elem; /* 해쉬 테이블 element */
+	bool writable;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */

@@ -1,5 +1,6 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
+#define VM
 
 #include <debug.h>
 #include <list.h>
@@ -120,6 +121,8 @@ struct thread {
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
+	void *stack_bottom;
+	void *rsp_stack;
 #endif
 
 	struct semaphore fork_sema;

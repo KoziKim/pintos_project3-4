@@ -11,6 +11,12 @@
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "threads/palloc.h"
+#include "filesys/file.h"
+#include "lib/string.h"
+#include "threads/palloc.h"
+#include "vm/vm.h"
+#include "filesys/directory.h"
+#include "filesys/inode.h"
 
 typedef int pid_t;
 #define PID_ERROR ((pid_t) -1)

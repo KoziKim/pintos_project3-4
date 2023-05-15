@@ -88,7 +88,7 @@ void hash_first (struct hash_iterator *, struct hash *);
 struct hash_elem *hash_next (struct hash_iterator *);
 struct hash_elem *hash_cur (struct hash_iterator *);
 
-unsigned page_hash (const struct hash_elem *p_, void *aux);
+uint64_t page_hash (const struct hash_elem *e, void *aux);
 bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux);
 
 /* Information. */
