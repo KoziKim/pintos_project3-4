@@ -208,6 +208,7 @@ __do_fork (void *aux) {
 		do_iret (&if_);
 	}
 error:
+	// current->exit_status = TID_ERROR;
 	sema_up(&current->fork_sema);
 	// thread_exit ();
 	exit(TID_ERROR);
@@ -230,6 +231,10 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
+
+	// VM
+	struct thread *curr = thread_current();
+	supplemental_page_table_init(&curr->spt);
 
 	/* And then load the binary */
 	success = load (file_name, &_if);
@@ -293,14 +298,19 @@ process_exit (void) {
 	struct thread *curr = thread_current();
 
 	for (int i=0; i<FDCOUNT_LIMIT; i++) 
-		file_close(curr->fdt[i]);
+	{
+		close(i);
+	}
+
+	// file_close(curr->fdt[i]);
 
 	palloc_free_multiple(curr->fdt, FDT_PAGES);
 	file_close(curr->running_file);
-	process_cleanup();
 
+	process_cleanup();
 	sema_up(&curr->wait_sema); // 2. 자식 스레드의 수행 종료를 부모에게 알리는 것. wait_sema의 waiter 큐에 있던 부모가 ready list에 들어가게 되고, 현재 실행 중인 자식 스레드는 계속 자기 수행 실행.
 	sema_down(&curr->exit_sema); // 3. ready list에 있던 부모가 실행되고, 자식 스레드가 waiter에 들어감. 
+	// process_cleanup ();
 }
 
 /* Free the current process's resources. */

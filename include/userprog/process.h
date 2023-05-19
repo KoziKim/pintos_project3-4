@@ -1,5 +1,6 @@
 #ifndef USERPROG_PROCESS_H
 #define USERPROG_PROCESS_H
+#define VM
 
 #include "threads/thread.h"
 #include "vm/vm.h"
