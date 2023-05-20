@@ -120,13 +120,12 @@ syscall_handler (struct intr_frame *f ) {
 			close(f->R.rdi);
 			break;
 		case SYS_MMAP:
-			mmap();
+			f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
 			break;
 		case SYS_MUNMAP:
-			munmap();
+			munmap(f->R.rdi);
 			break;
 		default:
-			printf ("system call!\n");
 			thread_exit ();		
 	}
 	// printf ("system call!\n");
@@ -328,7 +327,7 @@ void close(int fd)
 {
 	// file 주소를 fd 와 find_file_by_fd()로 찾는다.
 	struct file *fileobj = find_file_by_fd(fd);
-	if (fd < 0 || fd >= FDCOUNT_LIMIT || fileobj == NULL) {
+	if (fd < 2 || fd >= FDCOUNT_LIMIT || fileobj == NULL) {
 		return;
 	}
 
@@ -370,22 +369,22 @@ void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	if (offset%PGSIZE != 0)
 		return NULL;
 	// addr이 유효한 주소인지 확인. (NULL인지, 해당 주소의 시작점으로 align이 되는지, 주소가 커널영역인지 유저영역인지 확인.)
-	if (addr == NULL || is_kernel_vaddr(addr) || addr == 0 || ((uint32_t) addr) % PGSIZE != 0)
+	if (pg_round_down(addr) != addr || addr == NULL || is_kernel_vaddr(addr) || addr == NULL)
 		return NULL; 
 	// length가 0 이하인지 체크
-	if (length <= 0)
+	if ((long long)length <= 0)
 		return NULL;
 	// spt-find 통해서 유효한 페이지인지 확인 (현재 주소 가지고 있는 페이지 SPT에 존재해야하기 때문)
 	struct thread *cur = thread_current();
     struct file *file = find_file_by_fd(fd);
     if (file == NULL)
         return NULL;
-    if (!spt_find_page(&cur->spt, addr))
+	// 현재 주소를 가지고 있는 페이지가 SPT에 있으면 페이지가 겹치는 것
+    if (spt_find_page(&cur->spt, addr))
         return NULL;
 	// fd 값이 표준 입력 또는 표준 출력인지 확인, 해당 fd 통해 가져온 file 구조체 유효한지 검증
-	if (fd == STDIN || fd == STDOUT)
-        return NULL;
-
+	if (fd == STDIN || fd == STDOUT || fd >= FDCOUNT_LIMIT)
+        exit(-1);
 	// do_mmap() 호출 -> 메모리 매핑 진행
 	return do_mmap(addr, length, writable, file, offset);
 }

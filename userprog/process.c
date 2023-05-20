@@ -208,7 +208,7 @@ __do_fork (void *aux) {
 		do_iret (&if_);
 	}
 error:
-	// current->exit_status = TID_ERROR;
+	current->exit_status = TID_ERROR;
 	sema_up(&current->fork_sema);
 	// thread_exit ();
 	exit(TID_ERROR);
@@ -272,7 +272,7 @@ process_wait (tid_t child_tid UNUSED) {
 
 	struct thread *child = get_child_process(child_tid);
 
-	// 잘못된 예외 처리인 줄 알았긔.. child_list에 push를 안 해줬더니 평생 NULL이었던 것...
+	// 잘못된 예외 처리인 줄 알았음. child_list에 push를 안 해줬더니 계속 NULL이었던 것.
 	if (child == NULL) 
 		return -1;
 
@@ -297,11 +297,11 @@ process_exit (void) {
 	// msg("%s: exit(%d)", curr->name, curr->exit_status);
 	struct thread *curr = thread_current();
 
+
 	for (int i=0; i<FDCOUNT_LIMIT; i++) 
 	{
 		close(i);
 	}
-
 	// file_close(curr->fdt[i]);
 
 	palloc_free_multiple(curr->fdt, FDT_PAGES);

@@ -378,25 +378,17 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	// struct hash_iterator i;
-	// struct frame* frame;
-    // hash_first (&i, &spt->pages);
-	// while (hash_next(&i)){
-	// 	struct page *target = hash_entry (hash_cur (&i), struct page, hash_elem);
-	// 	frame = target->frame;
-	// 	// file-backed file인 경우
-	// 	// if(page_get_type(target) == VM_FILE){
-	// 	// if(target->operations->type == VM_FILE){
-		// do_munmap(target->va);
-	// 	// }
-	// }
-	// hash_destroy(&spt->pages, page_destroy_func);
-	// }
-	// free(frame);
-	// struct hash_iterator i;
-    // hash_first (&i, &spt->pages);
-	// while (hash_next(&i))
-	// {
-		hash_destroy(&spt->pages, page_destroy_func);
-	// }	
+	struct hash_iterator i;
+	struct frame* frame;
+    hash_first (&i, &spt->pages);
+	while (hash_next(&i)){
+		struct page *target = hash_entry (hash_cur (&i), struct page, hash_elem);
+		frame = target->frame;
+		//file-backed file인 경우
+		if(target->operations->type == VM_FILE){
+			do_munmap(target->va);
+		}
+	}
+	hash_destroy(&spt->pages,page_destroy_func);
+	free(frame);
 }
