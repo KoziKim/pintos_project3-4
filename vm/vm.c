@@ -251,14 +251,6 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 				vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
 				return true;
 			}
-			// 페이지 폴트가 spt에 의해 처리될 수 있는지 확인
-			// page = spt_find_page(spt, addr);
-			// if (page == NULL) {
-			// 	exit(-1);
-			// }
-			// if(write && !page->writable){
-			// 	exit(-1);
-			// }
 			return false;
 		}
 		else
