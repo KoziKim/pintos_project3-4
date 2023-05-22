@@ -31,6 +31,8 @@ struct thread *get_child_process ( int pid );
 void remove_child_process (struct thread *cp);
 bool lazy_load_segment (struct page *page, void *aux);
 
+struct lock filesys_lock;
+
 /* General process initializer for initd and other process. */
 static void
 process_init (void) {
@@ -448,7 +450,9 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* Open executable file. */
 	// printf("FILE_NAME : %s\n", file_name) == "args-single" 등 파일명(앞대가리).
+	lock_acquire(&filesys_lock);
 	file = filesys_open (file_name);
+	lock_release(&filesys_lock);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;

@@ -243,13 +243,12 @@ int filesize (int fd) {
 
 int read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
-	lock_acquire(&filesys_lock);
 	off_t read_size = 0;
-	char *read_buffer = (char *)buffer;
+	char *read_buffer = NULL;
+	read_buffer = (char *)buffer;
 
 	struct file *file_ptr = find_file_by_fd(fd);
 	if (file_ptr == NULL || file_ptr == STDOUT){
-		lock_release(&filesys_lock);
 		return -1;
 	}
 
@@ -263,10 +262,10 @@ int read (int fd, void *buffer, unsigned size) {
 				break;
 			}
 		}
-		lock_release(&filesys_lock);
 		return read_size;
 	}
 	else { // 표준 입력이 아닐 때. 즉, 파일의 데이터를 읽어온다.
+		lock_acquire(&filesys_lock);
 		read_size = file_read(file_ptr, read_buffer, size);
 		lock_release(&filesys_lock);
 		return read_size;
@@ -275,29 +274,27 @@ int read (int fd, void *buffer, unsigned size) {
 
 int write (int fd, const void *buffer, unsigned size) {
 	check_address(buffer);
-	lock_acquire(&filesys_lock);
 	off_t written_size = 0;
-	char *write_buffer = (char *)buffer;
+	char *write_buffer = NULL;
+	write_buffer = (char *)buffer;
 
 	/* STDOUT */
 	if (fd == 1) { // 표준 출력일 때. 버퍼에 쌓여있는 데이터(문자열)을 화면에 출력함.
 		putbuf(write_buffer, size);
-		lock_release(&filesys_lock);
 		return size;
 	}
 	else { // 표준 출력이 아닐 때. 버퍼에 쌓여있는 데이터(문자열)를 파일에 기록한다.
 		struct file *file_ptr = find_file_by_fd(fd);
 		// 아래의 예외처리는 틀렸다. write()의 경우 file_ptr가 NULL인 것이 논리적으로 다분히 가능하기 때문이다.
 		if (file_ptr == NULL){
-			lock_release(&filesys_lock);
 			exit(-1);
 		}
+		lock_acquire(&filesys_lock);
 		written_size = file_write(file_ptr, write_buffer, size);
+		lock_release(&filesys_lock);
 		if (written_size < 0) {
-			lock_release(&filesys_lock);
 			exit(-1);
 		}
-		lock_release(&filesys_lock);
 		return written_size;
 	}
 }
@@ -330,7 +327,6 @@ void close(int fd)
 	if (fd < 2 || fd >= FDCOUNT_LIMIT || fileobj == NULL) {
 		return;
 	}
-
 	remove_file_from_fdt(fd);
 
 	file_close(fileobj);

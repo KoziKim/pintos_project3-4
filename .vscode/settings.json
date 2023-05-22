@@ -24,6 +24,8 @@
     "istream": "c",
     "limits": "c",
     "sstream": "c",
-    "streambuf": "c"
+    "streambuf": "c",
+    "free-map.h": "c",
+    "string_view": "c"
   }
 }

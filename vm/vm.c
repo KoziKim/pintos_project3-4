@@ -143,33 +143,33 @@ vm_get_victim (void) {
 	struct frame *victim = NULL;
 	/* TODO: The policy for eviction is up to you. */
 
-	if (!list_empty(&frame_table)) {
-		/* 프레임 테이블에서 FIFO 방식으로 첫 번째 프레임을 가져옴. 
-		   (일단 이렇게 구현하고 나중에 Clock 알고리즘 등 사용해서 바꾸면 될듯) */
-		victim = list_entry(list_pop_front(&frame_table), struct frame, frame_elem);
+	// if (!list_empty(&frame_table)) {
+	// 	/* 프레임 테이블에서 FIFO 방식으로 첫 번째 프레임을 가져옴. 
+	// 	   (일단 이렇게 구현하고 나중에 Clock 알고리즘 등 사용해서 바꾸면 될듯) */
+	// 	victim = list_entry(list_pop_front(&frame_table), struct frame, frame_elem);
+	// }
+	struct thread* curr = thread_current();
+	for (clock_ref; clock_ref != list_end(&frame_table); clock_ref = list_next(clock_ref)){
+		victim = list_entry(clock_ref,struct frame,frame_elem);
+		//bit가 1인 경우
+		if(pml4_is_accessed(curr->pml4,victim->page->va)){
+			pml4_set_accessed(curr->pml4,victim->page->va,0);
+		}else{
+			return victim;
+		}
 	}
-	// struct thread* curr = thread_current();
-	// for (clock_ref; clock_ref != list_end(&frame_table); clock_ref = list_next(clock_ref)){
-	// 	victim = list_entry(clock_ref,struct frame,frame_elem);
-	// 	//bit가 1인 경우
-	// 	if(pml4_is_accessed(curr->pml4,victim->page->va)){
-	// 		pml4_set_accessed(curr->pml4,victim->page->va,0);
-	// 	}else{
-	// 		return victim;
-	// 	}
-	// }
 
-	// struct list_elem* start = list_begin(&frame_table);
+	struct list_elem* start = list_begin(&frame_table);
 
-	// for (start; start != list_end(&frame_table); start = list_next(start)){
-	// 	victim = list_entry(start,struct frame,frame_elem);
-	// 	//bit가 1인 경우
-	// 	if(pml4_is_accessed(curr->pml4,victim->page->va)){
-	// 		pml4_set_accessed(curr->pml4,victim->page->va,0);
-	// 	}else{
-	// 		return victim;
-	// 	}
-	// }
+	for (start; start != list_end(&frame_table); start = list_next(start)){
+		victim = list_entry(start,struct frame,frame_elem);
+		//bit가 1인 경우
+		if(pml4_is_accessed(curr->pml4,victim->page->va)){
+			pml4_set_accessed(curr->pml4,victim->page->va,0);
+		}else{
+			return victim;
+		}
+	}
 	return victim;
 }
 
@@ -203,8 +203,8 @@ vm_get_frame (void) {
 	lock_release(&frame_table_lock);
 	frame->page = NULL; // 새 frame 가져옴, page 멤버 초기화
 
-	// ASSERT (frame != NULL);
-	// ASSERT (frame->page == NULL);
+	ASSERT (frame != NULL);
+	ASSERT (frame->page == NULL);
 	return frame;
 }
 
@@ -368,8 +368,8 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 void page_destroy_func(struct hash_elem *e, void *aux) {
     struct page *page = hash_entry (e, struct page, hash_elem);
 
-	// ASSERT(is_user_vaddr(page->va));
-	// ASSERT(is_kernel_vaddr(page));
+	ASSERT(is_user_vaddr(page->va));
+	ASSERT(is_kernel_vaddr(page));
 	free(page);
 }
 
@@ -379,16 +379,16 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	struct hash_iterator i;
-	struct frame* frame;
+	// struct frame* frame;
     hash_first (&i, &spt->pages);
 	while (hash_next(&i)){
 		struct page *target = hash_entry (hash_cur (&i), struct page, hash_elem);
-		frame = target->frame;
+		// frame = target->frame;
 		//file-backed file인 경우
 		if(target->operations->type == VM_FILE){
 			do_munmap(target->va);
 		}
 	}
 	hash_destroy(&spt->pages,page_destroy_func);
-	free(frame);
+	// free(frame);
 }

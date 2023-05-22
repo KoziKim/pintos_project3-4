@@ -8,9 +8,9 @@ struct page;
 enum vm_type;
 
 struct file_page {
-	// struct file *file;
-	// size_t length;
-	// off_t offset;
+	struct file *file;
+	size_t length;
+	off_t offset;
 };
 
 void vm_file_init (void);

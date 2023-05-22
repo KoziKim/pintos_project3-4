@@ -52,19 +52,57 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the file. */
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
-	struct file_page *file_page UNUSED = &page->file;
+	// struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
+
+	ASSERT(page->frame->kva == kva); // #ifdef DBG check
+
+	void *addr = page->va;
+	//struct thread *t = thread_current();
+
+	//aren't these already set in vm_do_claim_page?
+	//page->frame->kva = kva; 
+	//pml4_set_page(t->pml4, addr, kva, true); // writable true, as we are writing into the frame
+
+	struct file *file = file_page->file;
+	size_t length = file_page->length;
+	off_t offset = file_page->offset;
+
+	if(file_read_at(file, kva, length, offset) != length){
+		// TODO - Not properly written-back
+	}
+	return true;
 }
 
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
+	// struct file_page *file_page UNUSED = &page->file;
 	struct file_page *file_page = &page->file;
+	void *addr = page->va;
+	struct thread *t = thread_current();
+
+	if(pml4_is_dirty(t->pml4, addr)){
+		struct file *file = file_page->file;
+		size_t length = file_page->length;
+		off_t offset = file_page->offset;
+		void *kva = page->frame->kva;
+		if(file_write_at(file, kva, length, offset) != length){
+			// TODO - Not properly written-back
+		}
+	}
+
+	// access to page now generates fault
+	pml4_clear_page(t->pml4, addr);
+	page->frame->page = NULL;
+	page->frame = NULL;
+	return true;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
 static void
 file_backed_destroy (struct page *page) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
 	// close(file_page->file);
 }
 
