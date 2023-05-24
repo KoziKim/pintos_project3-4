@@ -141,35 +141,34 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 static struct frame *
 vm_get_victim (void) {
 	struct frame *victim = NULL;
-	/* TODO: The policy for eviction is up to you. */
-
-	if (!list_empty(&frame_table)) {
-		/* 프레임 테이블에서 FIFO 방식으로 첫 번째 프레임을 가져옴. 
-		   (일단 이렇게 구현하고 나중에 Clock 알고리즘 등 사용해서 바꾸면 될듯) */
-		victim = list_entry(list_pop_front(&frame_table), struct frame, frame_elem);
+	 /* TODO: The policy for eviction is up to you. */
+	struct thread* curr = thread_current();
+	lock_acquire(&frame_table_lock);
+	for (clock_ref; clock_ref != list_end(&frame_table); clock_ref = list_next(clock_ref)){
+		victim = list_entry(clock_ref,struct frame,frame_elem);
+		//bit가 1인 경우
+		if(pml4_is_accessed(curr->pml4,victim->page->va)){
+			pml4_set_accessed(curr->pml4,victim->page->va,0);
+		}else{
+			lock_release(&frame_table_lock);
+			return victim;
+		}
 	}
-	// struct thread* curr = thread_current();
-	// for (clock_ref; clock_ref != list_end(&frame_table); clock_ref = list_next(clock_ref)){
-	// 	victim = list_entry(clock_ref,struct frame,frame_elem);
-	// 	//bit가 1인 경우
-	// 	if(pml4_is_accessed(curr->pml4,victim->page->va)){
-	// 		pml4_set_accessed(curr->pml4,victim->page->va,0);
-	// 	}else{
-	// 		return victim;
-	// 	}
-	// }
 
-	// struct list_elem* start = list_begin(&frame_table);
+	struct list_elem* start = list_begin(&frame_table);
 
-	// for (start; start != list_end(&frame_table); start = list_next(start)){
-	// 	victim = list_entry(start,struct frame,frame_elem);
-	// 	//bit가 1인 경우
-	// 	if(pml4_is_accessed(curr->pml4,victim->page->va)){
-	// 		pml4_set_accessed(curr->pml4,victim->page->va,0);
-	// 	}else{
-	// 		return victim;
-	// 	}
-	// }
+	for (start; start != list_end(&frame_table); start = list_next(start)){
+		victim = list_entry(start,struct frame,frame_elem);
+		//bit가 1인 경우
+		if(pml4_is_accessed(curr->pml4,victim->page->va)){
+			pml4_set_accessed(curr->pml4,victim->page->va,0);
+		}else{
+			lock_release(&frame_table_lock);
+			return victim;
+		}
+	}
+	lock_release(&frame_table_lock);
+	ASSERT(clock_ref != NULL);
 	return victim;
 }
 
@@ -357,10 +356,12 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
         void *aux = src_page->uninit.aux;
         // 페이지 타입 검사
         if (src_page->operations->type == VM_UNINIT) {
+			
             if(!vm_alloc_page_with_initializer(type, upage, writable, init, aux))
                 return false;
         }
 		else {
+			
 			if(!vm_alloc_page(type, upage, writable))
                 return false;
             if(!vm_claim_page(upage))
@@ -378,7 +379,7 @@ void page_destroy_func(struct hash_elem *e, void *aux) {
 
 	// ASSERT(is_user_vaddr(page->va));
 	// ASSERT(is_kernel_vaddr(page));
-	free(page);
+	vm_dealloc_page(page);
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -386,25 +387,15 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	// struct hash_iterator i;
-	// struct frame* frame;
-    // hash_first (&i, &spt->pages);
-	// while (hash_next(&i)){
-	// 	struct page *target = hash_entry (hash_cur (&i), struct page, hash_elem);
-	// 	frame = target->frame;
-	// 	// file-backed file인 경우
-	// 	// if(page_get_type(target) == VM_FILE){
-	// 	// if(target->operations->type == VM_FILE){
-		// do_munmap(target->va);
-	// 	// }
-	// }
-	// hash_destroy(&spt->pages, page_destroy_func);
-	// }
-	// free(frame);
-	// struct hash_iterator i;
-    // hash_first (&i, &spt->pages);
-	// while (hash_next(&i))
-	// {
-		hash_destroy(&spt->pages, page_destroy_func);
-	// }	
+	struct hash_iterator i;
+	hash_first(&i, &spt->pages);
+
+	while (hash_next(&i)){
+		struct page *target = hash_entry (hash_cur (&i), struct page, hash_elem);
+		if (target->operations->type == VM_FILE)
+			do_munmap(target->va);
+	}
+	
+	hash_destroy(&spt->pages, page_destroy_func);
+		
 }
