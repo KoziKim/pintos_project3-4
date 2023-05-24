@@ -17,6 +17,13 @@
     "off_t.h": "c",
     "file.h": "c",
     "*.tcc": "c",
-    "fstream": "c"
+    "fstream": "c",
+    "process.h": "c",
+    "palloc.h": "c",
+    "iosfwd": "c",
+    "istream": "c",
+    "limits": "c",
+    "sstream": "c",
+    "streambuf": "c"
   }
 }

@@ -1,5 +1,6 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
+#define VM
 
 #include <debug.h>
 #include <list.h>
@@ -32,6 +33,10 @@ typedef int tid_t;
 // for multi-oom , FDT_PAGES 3 -> 50, FDCOUNT_LIMIT FDT_PAGES*(1<<9) -> FDT_PAGES*200;
 #define FDT_PAGES 50 // pages allocate for file descriptor tables (thread_create, process_exit)
 #define FDCOUNT_LIMIT FDT_PAGES*200 // fd_idx limit
+
+/* System Call */
+#define STDIN 0
+#define STDOUT 1
 
 /* A kernel thread or user process.
  *
@@ -120,6 +125,8 @@ struct thread {
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
+	void *stack_bottom;
+	void *rsp_stack;
 #endif
 
 	struct semaphore fork_sema;

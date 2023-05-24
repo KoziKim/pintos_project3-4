@@ -29,6 +29,8 @@ static void __do_fork (void *);
 void argument_stack(char **argv, int argc, struct intr_frame *if_); // if_는 인터럽트 스택 프레임 => 여기에다가 쌓는다.
 struct thread *get_child_process ( int pid );
 void remove_child_process (struct thread *cp);
+bool lazy_load_segment (struct page *page, void *aux);
+
 
 /* General process initializer for initd and other process. */
 static void
@@ -207,6 +209,7 @@ __do_fork (void *aux) {
 		do_iret (&if_);
 	}
 error:
+	// current->exit_status = TID_ERROR;
 	sema_up(&current->fork_sema);
 	// thread_exit ();
 	exit(TID_ERROR);
@@ -229,6 +232,10 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
+
+	// VM
+	struct thread *curr = thread_current();
+	supplemental_page_table_init(&curr->spt);
 
 	/* And then load the binary */
 	success = load (file_name, &_if);
@@ -292,14 +299,19 @@ process_exit (void) {
 	struct thread *curr = thread_current();
 
 	for (int i=0; i<FDCOUNT_LIMIT; i++) 
-		file_close(curr->fdt[i]);
+	{
+		close(i);
+	}
+
+	// file_close(curr->fdt[i]);
 
 	palloc_free_multiple(curr->fdt, FDT_PAGES);
 	file_close(curr->running_file);
-	process_cleanup();
 
+	process_cleanup();
 	sema_up(&curr->wait_sema); // 2. 자식 스레드의 수행 종료를 부모에게 알리는 것. wait_sema의 waiter 큐에 있던 부모가 ready list에 들어가게 되고, 현재 실행 중인 자식 스레드는 계속 자기 수행 실행.
 	sema_down(&curr->exit_sema); // 3. ready list에 있던 부모가 실행되고, 자식 스레드가 waiter에 들어감. 
+	// process_cleanup ();
 }
 
 /* Free the current process's resources. */
@@ -308,7 +320,9 @@ process_cleanup (void) {
 	struct thread *curr = thread_current ();
 
 #ifdef VM
-	supplemental_page_table_kill (&curr->spt);
+	if(!hash_empty(&curr->spt.pages)){
+		supplemental_page_table_kill (&curr->spt);
+	}
 #endif
 
 	uint64_t *pml4;
@@ -572,13 +586,32 @@ validate_segment (const struct Phdr *phdr, struct file *file) {
 	return true;
 }
 
+/* Adds a mapping from user virtual address UPAGE to kernel
+ * virtual address KPAGE to the page table.
+ * If WRITABLE is true, the user process may modify the page;
+ * otherwise, it is read-only.
+ * UPAGE must not already be mapped.
+ * KPAGE should probably be a page obtained from the user pool
+ * with palloc_get_page().
+ * Returns true on success, false if UPAGE is already mapped or
+ * if memory allocation fails. */
+bool
+install_page (void *upage, void *kpage, bool writable) {
+	struct thread *t = thread_current ();
+
+	/* Verify that there's not already a page at that virtual
+	 * address, then map our page there. */
+	return (pml4_get_page (t->pml4, upage) == NULL
+			&& pml4_set_page (t->pml4, upage, kpage, writable));
+}
+
 #ifndef VM
 /* Codes of this block will be ONLY USED DURING project 2.
  * If you want to implement the function for whole project 2, implement it
  * outside of #ifndef macro. */
 
 /* load() helpers. */
-static bool install_page (void *upage, void *kpage, bool writable);
+// static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Loads a segment starting at offset OFS in FILE at address
  * UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
@@ -653,34 +686,36 @@ setup_stack (struct intr_frame *if_) {
 	return success;
 }
 
-/* Adds a mapping from user virtual address UPAGE to kernel
- * virtual address KPAGE to the page table.
- * If WRITABLE is true, the user process may modify the page;
- * otherwise, it is read-only.
- * UPAGE must not already be mapped.
- * KPAGE should probably be a page obtained from the user pool
- * with palloc_get_page().
- * Returns true on success, false if UPAGE is already mapped or
- * if memory allocation fails. */
-static bool
-install_page (void *upage, void *kpage, bool writable) {
-	struct thread *t = thread_current ();
 
-	/* Verify that there's not already a page at that virtual
-	 * address, then map our page there. */
-	return (pml4_get_page (t->pml4, upage) == NULL
-			&& pml4_set_page (t->pml4, upage, kpage, writable));
-}
 #else
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
 
-static bool
+bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+	/* Project3 - Anon Page */
+	/* aux를 통해 받은 segment의 값들은 해당 함수를 local 변수화 */
+	struct file *file = ((struct segment *)aux)->file;
+	off_t offset = ((struct segment *)aux)->offset;
+	size_t read_bytes = ((struct segment *)aux)->read_bytes;
+	size_t size_for_zero = PGSIZE - read_bytes;
+
+	file_seek(file,offset);
+	//file_read(file,buffer,size)
+	if(file_read(file, page->frame->kva, read_bytes) != (int)read_bytes){
+		palloc_free_page(page->frame->kva);
+		return false;
+	}
+	// 나머지 0을 채움
+	memset(page->frame->kva + read_bytes, 0, size_for_zero);
+
+	// file_seek(file, offset); //다시 offset 초기화
+
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -704,6 +739,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 	ASSERT (pg_ofs (upage) == 0);
 	ASSERT (ofs % PGSIZE == 0);
 
+	// file_seek(file,ofs);
 	while (read_bytes > 0 || zero_bytes > 0) {
 		/* Do calculate how to fill this page.
 		 * We will read PAGE_READ_BYTES bytes from FILE
@@ -711,16 +747,25 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+		struct segment *seg = (struct segment *)malloc(sizeof(struct segment));
+		// if (seg == NULL) {
+		// 	return false;
+		// }
+		seg->file = file;
+		seg->offset = ofs;
+		seg->read_bytes = page_read_bytes;
+
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
+		// void *aux = seg;
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, aux))
+					writable, lazy_load_segment, seg))
 			return false;
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
+		ofs += page_read_bytes;
 	}
 	return true;
 }
@@ -736,6 +781,17 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 
+	// vm_alloc_page_with_initializer의 wrapper 함수(정의되어 있음)
+	// #define vm_alloc_page(type, upage, writable) \
+	//     vm_alloc_page_with_initializer ((type), (upage), (writable), NULL, NULL)
+
+  if(vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true)){
+        success = vm_claim_page(stack_bottom);
+        if(success){
+            if_->rsp = USER_STACK;
+            thread_current()->stack_bottom = stack_bottom;
+        }
+    }
 	return success;
 }
 #endif /* VM */
@@ -817,16 +873,3 @@ void remove_child_process (struct thread *cp) {
 	}
 	return;
 }
-
-// int process_add_file (struct file *f) {
-// 	struct thread *th = thread_current();
-// 	th->fdt = f;
-// 	th->fdt+1;
-// 	return fd;
-// }
-// struct file *process_get_file (int fd) {
-
-// }
-// void process_close_file (int fd) {
-	
-// }

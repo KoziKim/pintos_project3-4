@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "../debug.h"
 #include "threads/malloc.h"
+#include "vm/vm.h"
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
 	list_entry(LIST_ELEM, struct hash_elem, list_elem)
@@ -173,7 +174,8 @@ hash_apply (struct hash *h, hash_action_func *action) {
    hash_first (&i, h);
    while (hash_next (&i))
    {
-   struct foo *f = hash_entry (hash_cur (&i), struct foo, elem);
+   struct foo *f = 
+    (hash_cur (&i), struct foo, elem);
    ...do something with f...
    }
 
@@ -240,6 +242,12 @@ hash_empty (struct hash *h) {
 #define FNV_64_BASIS 0xcbf29ce484222325UL
 
 /* Returns a hash of the SIZE bytes in BUF. */
+/* 입력된 버퍼를 해싱해서 해시값을 계산하는 함수, 구체적으로는 FNV-1a 해시 함수 */
+/* 해시 알고리즘에서는 입력 데이터의 비트열을 임의의 길이의 출력값으로 변환하는 함수를 사용함 */
+/* FNV-1a 해시 함수는 입력 데이터의 모든 바이트에 대해 특정 상수를 곱하고
+   XOR 연산을 수행하여 해시값을 계산.
+   입력으로 받은 버퍼 buf_와 해당 버퍼의 크기 size를 받아서,
+   hash 변수에 FNV-1a 알고리즘을 적용한 결과를 저장 */
 uint64_t
 hash_bytes (const void *buf_, size_t size) {
 	/* Fowler-Noll-Vo 32-bit hash, for bytes. */
