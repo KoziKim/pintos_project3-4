@@ -31,6 +31,7 @@ struct thread *get_child_process ( int pid );
 void remove_child_process (struct thread *cp);
 bool lazy_load_segment (struct page *page, void *aux);
 
+
 /* General process initializer for initd and other process. */
 static void
 process_init (void) {
@@ -712,7 +713,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	// 나머지 0을 채움
 	memset(page->frame->kva + read_bytes, 0, size_for_zero);
 
-	file_seek(file, offset); //다시 offset 초기화
+	// file_seek(file, offset); //다시 offset 초기화
 
 	return true;
 }
@@ -738,7 +739,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 	ASSERT (pg_ofs (upage) == 0);
 	ASSERT (ofs % PGSIZE == 0);
 
-	file_seek(file,ofs);
+	// file_seek(file,ofs);
 	while (read_bytes > 0 || zero_bytes > 0) {
 		/* Do calculate how to fill this page.
 		 * We will read PAGE_READ_BYTES bytes from FILE

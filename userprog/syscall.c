@@ -50,6 +50,9 @@ int write (int fd, const void *buffer, unsigned size);
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
+void *mmap(void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap (void *addr);
+static struct file * find_file_by_fd (int fd) ;
 
 void
 syscall_init (void) {
@@ -117,6 +120,12 @@ syscall_handler (struct intr_frame *f ) {
 		case SYS_CLOSE:
 			close(f->R.rdi);
 			break;
+		case SYS_MMAP:
+			f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+			break;
+		case SYS_MUNMAP:
+			munmap(f->R.rdi);
+			break;
 		default:
 			printf ("system call!\n");
 			thread_exit ();		
@@ -124,19 +133,58 @@ syscall_handler (struct intr_frame *f ) {
 	// printf ("system call!\n");
 	// thread_exit ();
 }
-
-struct page* check_address (void *addr) {
-	struct thread *cur = thread_current();
+void * check_address(void * addr) {
 	if (addr == NULL || is_kernel_vaddr(addr)) {
 		exit(-1);
 	}
 
-	return spt_find_page(&thread_current()->spt, addr);
 }
 
+// struct page* check_address (void *addr) {
+// 	struct thread *cur = thread_current();
+// 	if (addr == NULL || is_kernel_vaddr(addr)) {
+// 		exit(-1);
+// 	}
+
+// 	return spt_find_page(&thread_current()->spt, addr);
+// }
+
+void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
+{	
+	// offset의 값이 PGSIZE에 알맞게 align 되어 있는지 체크
+	if (offset % PGSIZE  != 0)
+		return NULL;
+	// 해당 주소가 NULL 인지, 해당 주소의 시작점으로 align이 되는지 마지막으로 주소가 커널 영역인지 유저영역인지 
+	// 파일을 읽어야 하는 크기인 length가 0이하 인지도 체크
+	if (addr == NULL || is_kernel_vaddr(addr) || pg_round_down(addr) != addr || (long long)length <= 0) 
+		return NULL;
+	
+	// 현재 주소를 가지고 있는 페이지가 spt에 있으면 페이지가 겹치는 것
+	if (spt_find_page(&thread_current()->spt, addr))
+		return NULL;
+
+	// fd값이 표준 입력 또는 표준 출력인지 확인하고
+	if (fd == 0 || fd == 1)
+		exit(-1);
+	// 해당 fd를 통해 가져온 구조체가 유효한지 검증
+	struct file *target = find_file_by_fd(fd);
+
+	if (target == NULL)
+		return NULL;
+	
+	
+	return do_mmap(addr, length, writable, target, offset);
+}
+
+void munmap (void *addr)
+{
+	do_munmap (addr);
+}
+
+	
 void check_valid_buffer(void *buffer, unsigned size, void *rsp, bool to_write) {
 	for (int i = 0; i < size; i++) {
-		struct page* page = check_address(buffer + i);
+		struct page* page = spt_find_page(&thread_current()->spt, buffer + i);
 		
 		/* 해당 주소가 포함된 페이지가 spt에 없는 경우 */
 		if (page == NULL) {
@@ -206,7 +254,6 @@ bool remove (const char *file)
 }
 
 int add_file_to_fdt (struct file *file);
-static struct file * find_file_by_fd (int fd);
 void remove_file_from_fdt (int fd);
 
 int open (const char *file)
